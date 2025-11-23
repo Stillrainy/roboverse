@@ -205,12 +205,15 @@ class Widow250DrawerRandomizedEnv(Widow250DrawerEnv):
                        (0, 0, 0.707107, 0.707107)][left_opening]
         return drawer_position, drawer_quat, left_opening
 
-    def reset(self):
+    def reset(self, seed=None, options=None):
+        if seed is not None:
+            np.random.seed(seed)
+            
         self.drawer_pos, self.drawer_quat, self.left_opening = \
             self.set_drawer_pos_and_quat()
         self.object_position_low, self.object_position_high = \
             self.get_obj_pos_high_low()
-        return super(Widow250DrawerRandomizedEnv, self).reset()
+        return super(Widow250DrawerRandomizedEnv, self).reset(seed=seed, options=options)
 
 
 class Widow250DoubleDrawerEnv(Widow250DrawerEnv):
@@ -287,7 +290,7 @@ if __name__ == "__main__":
 
     for j in range(5):
         for i in range(20):
-            obs, rew, done, info = env.step(
+            obs, rew, terminated, truncated, info = env.step(
                 np.asarray([-0.05, 0., 0., 0., 0., 0.5, 0., 0.]))
             print("reward", rew, "info", info)
             time.sleep(0.1)

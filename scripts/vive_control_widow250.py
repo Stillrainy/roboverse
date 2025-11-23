@@ -1,6 +1,6 @@
 import numpy as np
 import pybullet as p
-import gym
+import gymnasium as gym
 import numpy as np
 import roboverse.bullet as bullet
 import os
@@ -83,7 +83,7 @@ def collect_one_trajectory(env, num_timesteps):
         prev_vr_theta = cont_orient[2]
         return action
 
-    o = env.reset()
+    o, _ = env.reset()
     time.sleep(1.5)
     images = []
     accept = False
@@ -103,11 +103,11 @@ def collect_one_trajectory(env, num_timesteps):
         action = get_vr_output()
         observation = env.get_observation()
         traj["observations"].append(observation)
-        next_state, reward, done, info = env.step(action)
+        next_state, reward, terminated, truncated, info = env.step(action)
         traj["next_observations"].append(next_state)
         traj["actions"].append(action)
         traj["rewards"].append(reward)
-        traj["terminals"].append(done)
+        traj["terminals"].append(bool(terminated or truncated))
         traj["agent_infos"].append(info)
         traj["env_infos"].append(info)
         time.sleep(0.03)

@@ -6,6 +6,7 @@ import roboverse
 from roboverse.policies import policies
 import argparse
 from tqdm import tqdm
+from gymnasium import Env
 
 from roboverse.utils import get_timestamp
 EPSILON = 0.1
@@ -29,7 +30,7 @@ def add_transition(traj, observation, action, reward, info, agent_info, done,
     return traj
 
 
-def collect_one_traj(env, policy, num_timesteps, noise,
+def collect_one_traj(env: Env, policy, num_timesteps, noise,
                      accept_trajectory_key):
     num_steps = -1
     rewards = []
@@ -56,10 +57,11 @@ def collect_one_traj(env, policy, num_timesteps, noise,
             action = np.append(action, 0)
         action += np.random.normal(scale=noise, size=(env_action_dim,))
         action = np.clip(action, -1 + EPSILON, 1 - EPSILON)
-        observation = env.get_observation()
-        next_observation, reward, done, info = env.step(action)
+        observation = env.get_wrapper_attr('get_observation')()
+        next_observation, reward, terminated, truncated, info = env.step(action)
+        done = bool(terminated or truncated)
         add_transition(traj, observation,  action, reward, info, agent_info,
-                       done, next_observation)
+                   done, next_observation)
 
         if info[accept_trajectory_key] and num_steps < 0:
             num_steps = j
@@ -91,8 +93,14 @@ def main(args):
 
     data = []
     assert args.policy_name in policies.keys(), f"The policy name must be one of: {policies.keys()}"
-    assert args.accept_trajectory_key in env.get_info().keys(), \
-        f"""The accept trajectory key must be one of: {env.get_info().keys()}"""
+    # wrapper-aware get_info: prefer get_wrapper_attr when available
+    _g = getattr(env, 'get_wrapper_attr', None)
+    if callable(_g):
+        env_info = _g('get_info')()
+    else:
+        env_info = env.get_info()
+    assert args.accept_trajectory_key in env_info.keys(), \
+        f"""The accept trajectory key must be one of: {env_info.keys()}"""
     policy_class = policies[args.policy_name]
     policy = policy_class(env)
     num_success = 0

@@ -1,9 +1,9 @@
 import numpy as np
 import roboverse.bullet as bullet
+from gymnasium import Env
 
 from .drawer_open_transfer import DrawerOpenTransfer
 from .pick_place import PickPlace
-from roboverse.envs.widow250_custom import Widow250DrawerRandomizedPickPlaceEnv as Env
 
 
 class DrawerPickPlace:
@@ -18,6 +18,16 @@ class DrawerPickPlace:
 
     def __init__(self, env, **pick_kwargs):
         self.env: Env = env
+        # helper to access attributes through wrappers (Gymnasium)
+        def _env_attr(name):
+            getter = getattr(self.env, 'get_wrapper_attr', None)
+            if callable(getter):
+                try:
+                    return getter(name)
+                except Exception:
+                    pass
+            return getattr(self.env, name)
+        self._env_attr = _env_attr
         # instantiate subpolicies
         self.drawer_policy = DrawerOpenTransfer(env)
         # by default use PickPlace (grasp+place) policy
@@ -45,8 +55,9 @@ class DrawerPickPlace:
         self.hang_target_z = None
 
     def get_action(self):
-        # Check environment info to guide stage transitions
-        info = self.env.get_info()
+        # Check environment info to guide stage transitions (wrapper-aware)
+        info_getter = self._env_attr('get_info')
+        info = info_getter() if callable(info_getter) else self.env.get_info()
 
         # If still opening stage, use drawer policy
         if self.stage == 'open':
@@ -54,9 +65,9 @@ class DrawerPickPlace:
             if drawer_opened:
                 self.stage = 'hang'
                 # compute a hang target z using env ee_pos_init if available
-                ee_pos, _ = bullet.get_link_state(self.env.robot_id, self.env.end_effector_index)
+                ee_pos, _ = bullet.get_link_state(self._env_attr('robot_id'), self._env_attr('end_effector_index'))
                 self.hang_target_z = float(ee_pos[2]) + self.hang_height_offset
-                stop_action = np.zeros(self.env.action_dim)
+                stop_action = np.zeros(self._env_attr('action_dim'))
                 return stop_action, dict(stage=self.stage, **info)
             else:
                 action, a_info = self.drawer_policy.get_action()        
@@ -66,13 +77,13 @@ class DrawerPickPlace:
         # If we're in hang stage, produce a purely vertical upward motion
         if self.stage == 'hang':
             # get current ee position
-            ee_pos, _ = bullet.get_link_state(self.env.robot_id, self.env.end_effector_index)
+            ee_pos, _ = bullet.get_link_state(self._env_attr('robot_id'), self._env_attr('end_effector_index'))
             z_diff = self.hang_target_z - float(ee_pos[2])
             # small tolerance to consider hang complete
             if z_diff <= 0.01:
                 self.stage = 'pick'
                 self.pick_policy.reset()
-                stop_action = np.zeros(self.env.action_dim)
+                stop_action = np.zeros(self._env_attr('action_dim'))
                 return stop_action, dict(stage=self.stage, **info)
             else:
                 # move vertically upwards only

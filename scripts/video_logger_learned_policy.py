@@ -121,7 +121,7 @@ class BulletVideoLogger:
     def collect_traj_and_save_video(self, path_idx):
         images = []
         robot_images = []
-        obs = self.env.reset()
+        obs, _ = self.env.reset()
         # self.scripted_policy.reset()
         for t in range(self.num_timesteps_per_traj):
             img, depth, segmentation = bullet.render(
@@ -131,7 +131,7 @@ class BulletVideoLogger:
             robot_images.append(reshape_image_obs(obs['image']))
             # action, _ = self.scripted_policy.get_action()
             action, _ = self.policy.get_action(obs['image'])
-            obs, rew, done, info = self.env.step(action)
+            obs, rew, terminated, truncated, info = self.env.step(action)
 
         if self.save_all:
             self.save_function(images, robot_images, path_idx)

@@ -35,11 +35,11 @@ class Widow250DrawerRandomizedPickPlaceEnv(Widow250DrawerRandomizedEnv):
             # leave it unset; callers can create PickPlace(env) after reset.
             self.scripted_policy = None
 
-    def reset(self):
+    def reset(self, seed=None, options=None):
         self._opened_achieved = False
         self._grasp_achieved = False
         self._place_achieved = False
-        return super(Widow250DrawerRandomizedPickPlaceEnv, self).reset()
+        return super(Widow250DrawerRandomizedPickPlaceEnv, self).reset(seed=seed, options=options)
 
     def get_info(self):
         """Extend parent info with `place_success_target` computed for the
@@ -65,7 +65,7 @@ class Widow250DrawerRandomizedPickPlaceEnv(Widow250DrawerRandomizedEnv):
 
     def step(self, action):
         # Let the parent step update the world and get a base observation
-        obs, _, _, _ = super(Widow250DrawerRandomizedPickPlaceEnv, self).step(action)
+        obs, _, _, _, _ = super(Widow250DrawerRandomizedPickPlaceEnv, self).step(action)
 
         # Recompute info after the parent step
         info = self.get_info()
@@ -94,5 +94,6 @@ class Widow250DrawerRandomizedPickPlaceEnv(Widow250DrawerRandomizedEnv):
         # TODO: fix the issue grasp_achieved
         if self._opened_achieved and self._place_achieved:
             done = True
-
-        return obs, reward, done, info
+        terminated = bool(done)
+        truncated = False
+        return obs, reward, terminated, truncated, info

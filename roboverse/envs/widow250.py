@@ -1,5 +1,6 @@
-import gym
+import gymnasium as gym
 import numpy as np
+import logging
 
 from roboverse.bullet.serializable import Serializable
 import roboverse.bullet as bullet
@@ -179,7 +180,11 @@ class Widow250Env(gym.Env, Serializable):
                 scale=self.object_scales[object_name])
             bullet.step_simulation(self.num_sim_steps_reset)
 
-    def reset(self):
+    def reset(self, seed=None, options=None):
+        super().reset(seed=seed)
+        if seed is not None:
+            np.random.seed(seed)
+
         bullet.reset()
         bullet.setup_headless()
         self._load_meshes()
@@ -189,7 +194,7 @@ class Widow250Env(gym.Env, Serializable):
             self.reset_joint_values)
         self.is_gripper_open = True  # TODO(avi): Clean this up
 
-        return self.get_observation()
+        return self.get_observation(), {}
 
     def step(self, action):
 
@@ -271,8 +276,9 @@ class Widow250Env(gym.Env, Serializable):
 
         info = self.get_info()
         reward = self.get_reward(info)
-        done = False
-        return self.get_observation(), reward, done, info
+        terminated = False
+        truncated = False
+        return self.get_observation(), reward, terminated, truncated, info
 
     def get_observation(self):
         gripper_state = self.get_gripper_state()
@@ -281,15 +287,27 @@ class Widow250Env(gym.Env, Serializable):
             self.robot_id, self.end_effector_index)
         object_position, object_orientation = bullet.get_object_position(
             self.objects[self.target_object])
+        # ensure numpy arrays with expected dtypes for Gymnasium checks
+        object_position = np.asarray(object_position, dtype=np.float32)
+        object_orientation = np.asarray(object_orientation, dtype=np.float32)
         if self.observation_mode == 'pixels':
             img, depth, _ = self.render_obs()
+            # normalize/cast types to match observation_space dtypes
+            if self.transpose_image:
+                # `img` already transposed in `render_obs`
+                image_out = img.astype(np.uint8)
+            else:
+                image_out = img.astype(np.uint8)
+            depth_out = depth.astype(np.float32)
+            state_arr = np.asarray(np.concatenate(
+                (ee_pos, ee_quat, gripper_state, gripper_binary_state)), dtype=np.float32)
+
             observation = {
                 'object_position': object_position,
                 'object_orientation': object_orientation,
-                'state': np.concatenate(
-                    (ee_pos, ee_quat, gripper_state, gripper_binary_state)),
-                'image': img,
-                'depth': depth,
+                'state': state_arr,
+                'image': image_out,
+                'depth': depth_out,
             }
         else:
             raise NotImplementedError
@@ -336,24 +354,38 @@ class Widow250Env(gym.Env, Serializable):
 
     def _set_observation_space(self):
         if self.observation_mode == 'pixels':
+            obj_pos_space = gym.spaces.Box(
+                np.array(self.object_position_low)-1,
+                np.array(self.object_position_high)+1)
+
+            obj_ori_space = gym.spaces.Box(
+                -np.ones(4),
+                np.ones(4))
+
             image_size = (*self.observation_img_dim, 3) if not self.transpose_image \
                 else (3, *self.observation_img_dim)
             img_space = gym.spaces.Box(
                 0, 255,
                 image_size,
                 dtype=np.uint8)
+
             depth_space = gym.spaces.Box(
                 0, 1,
-                (*self.observation_img_dim,),
-                dtype=np.float32)
+                (*self.observation_img_dim,))
+
             robot_state_dim = 10  # XYZ + QUAT + GRIPPER_STATE
             obs_bound = 100
             obs_high = np.ones(robot_state_dim) * obs_bound
-            state_space = gym.spaces.Box(-obs_high, obs_high)
+            state_space = gym.spaces.Box(
+                -obs_high,
+                obs_high)
+
             spaces = {
+                'object_position': obj_pos_space,
+                'object_orientation': obj_ori_space,
+                'state': state_space,
                 'image': img_space,
                 'depth': depth_space,
-                'state': state_space
             }
             self.observation_space = gym.spaces.Dict(spaces)
         else:
@@ -366,7 +398,10 @@ class Widow250Env(gym.Env, Serializable):
         return gripper_state
 
     def close(self):
-        bullet.disconnect()
+        try:
+            bullet.disconnect()
+        except:
+            logging.info("Bullet already disconnected")
 
 
 class Widow250MultiObjectEnv(MultiObjectEnv, Widow250Env):
@@ -378,11 +413,10 @@ if __name__ == "__main__":
     import time
 
     env.reset()
-    # import IPython; IPython.embed()
 
     for i in range(20):
         print(i)
-        obs, rew, done, info = env.step(
+        obs, rew, terminated, truncated, info = env.step(
             np.asarray([-0.05, 0., 0., 0., 0., 0.5, 0.]))
         print("reward", rew, "info", info)
         time.sleep(0.1)

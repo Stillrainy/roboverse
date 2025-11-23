@@ -5,6 +5,16 @@ from roboverse.assets.shapenet_object_lists import GRASP_OFFSETS
 from .drawer_open_transfer import DrawerOpenTransfer
 
 
+def env_attr(env, name):
+    getter = getattr(env, 'get_wrapper_attr', None)
+    if callable(getter):
+        try:
+            return getter(name)
+        except Exception:
+            pass
+    return getattr(env, name)
+
+
 class PickPlace:
 
     def __init__(self, env, pick_height_thresh=-0.25, xyz_action_scale=7.0,
@@ -19,22 +29,22 @@ class PickPlace:
 
     def reset(self):
         # self.dist_thresh = 0.06 + np.random.normal(scale=0.01)
-        self.object_to_target = self.env.object_names[
-            np.random.randint(self.env.num_objects)]
+        self.object_to_target = env_attr(self.env, 'object_names')[
+            np.random.randint(env_attr(self.env, 'num_objects'))]
         self.pick_point = bullet.get_object_position(
-            self.env.objects[self.object_to_target])[0]
+            env_attr(self.env, 'objects')[self.object_to_target])[0]
         if self.object_to_target in GRASP_OFFSETS.keys():
             self.pick_point += np.asarray(GRASP_OFFSETS[self.object_to_target])
-        self.drop_point = self.env.container_position
+        self.drop_point = env_attr(self.env, 'container_position')
         self.drop_point[2] = -0.2
         self.place_attempted = False
         self.object_lifted = False
 
     def get_action(self):
         ee_pos, _ = bullet.get_link_state(
-            self.env.robot_id, self.env.end_effector_index)
+            env_attr(self.env, 'robot_id'), env_attr(self.env, 'end_effector_index'))
         object_pos, _ = bullet.get_object_position(
-            self.env.objects[self.object_to_target])
+            env_attr(self.env, 'objects')[self.object_to_target])
         if object_pos[2] > self.pick_height_thresh_noisy and not self.object_lifted:
             self.object_lifted = True
         gripper_pickpoint_dist = np.linalg.norm(self.pick_point - ee_pos)
@@ -46,7 +56,7 @@ class PickPlace:
             action_xyz = [0., 0., 0.]
             action_angles = [0., 0., 0.]
             action_gripper = [0.]
-        elif gripper_pickpoint_dist > 0.02 and self.env.is_gripper_open:
+        elif gripper_pickpoint_dist > 0.02 and env_attr(self.env, 'is_gripper_open'):
             # move near the object
             action_xyz = (self.pick_point - ee_pos) * self.xyz_action_scale
             xy_diff = np.linalg.norm(action_xyz[:2] / self.xyz_action_scale)
@@ -54,14 +64,14 @@ class PickPlace:
                 action_xyz[2] = 0.0
             action_angles = [0., 0., 0.]
             action_gripper = [0.0]
-        elif self.env.is_gripper_open:
+        elif env_attr(self.env, 'is_gripper_open'):
             # near the object enough, performs grasping action
             action_xyz = (self.pick_point  - ee_pos) * self.xyz_action_scale
             action_angles = [0., 0., 0.]
             action_gripper = [-0.7]
         elif not self.object_lifted:
             # lifting objects above the height threshold for picking
-            action_xyz = (self.env.ee_pos_init - ee_pos) * self.xyz_action_scale
+            action_xyz = (env_attr(self.env, 'ee_pos_init') - ee_pos) * self.xyz_action_scale
             action_angles = [0., 0., 0.]
             action_gripper = [0.]
         elif gripper_droppoint_dist > 0.02:
@@ -114,8 +124,8 @@ class PickPlaceOpen:
 
     def get_action(self):
         ee_pos, _ = bullet.get_link_state(
-            self.env.robot_id, self.env.end_effector_index)
-        object_pos, _ = bullet.get_object_position(self.env.blocking_object)
+            env_attr(self.env, 'robot_id'), env_attr(self.env, 'end_effector_index'))
+        object_pos, _ = bullet.get_object_position(env_attr(self.env, 'blocking_object'))
         object_lifted = object_pos[2] > self.pick_height_thresh_noisy
         gripper_pickpoint_dist = np.linalg.norm(self.pick_point - ee_pos)
         gripper_droppoint_dist = np.linalg.norm(self.drop_point - ee_pos)
@@ -137,7 +147,7 @@ class PickPlaceOpen:
                 action_gripper = [0.0]
                 neutral_action = [0.7]
                 self.neutral_taken = True
-        elif gripper_pickpoint_dist > 0.02 and self.env.is_gripper_open:
+        elif gripper_pickpoint_dist > 0.02 and env_attr(self.env, 'is_gripper_open'):
             # move near the object
             action_xyz = (self.pick_point - ee_pos) * self.xyz_action_scale
             xy_diff = np.linalg.norm(action_xyz[:2] / self.xyz_action_scale)
@@ -145,14 +155,14 @@ class PickPlaceOpen:
                 action_xyz[2] = 0.0
             action_angles = [0., 0., 0.]
             action_gripper = [0.0]
-        elif self.env.is_gripper_open:
+        elif env_attr(self.env, 'is_gripper_open'):
             # near the object enough, performs grasping action
             action_xyz = (self.pick_point  - ee_pos) * self.xyz_action_scale
             action_angles = [0., 0., 0.]
             action_gripper = [-0.7]
         elif not object_lifted:
             # lifting objects above the height threshold for picking
-            action_xyz = (self.env.ee_pos_init - ee_pos) * self.xyz_action_scale
+            action_xyz = (env_attr(self.env, 'ee_pos_init') - ee_pos) * self.xyz_action_scale
             action_angles = [0., 0., 0.]
             action_gripper = [0.]
         elif gripper_droppoint_dist > 0.02:
@@ -192,8 +202,8 @@ class PickPlaceOld:
     def reset(self):
         self.dist_thresh = 0.06 + np.random.normal(scale=0.01)
         self.place_attempted = False
-        self.object_to_target = self.env.object_names[
-            np.random.randint(self.env.num_objects)]
+        self.object_to_target = env_attr(self.env, 'object_names')[
+            np.random.randint(env_attr(self.env, 'num_objects'))]
 
     def get_action(self):
         ee_pos, _ = bullet.get_link_state(

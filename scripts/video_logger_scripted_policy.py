@@ -116,7 +116,7 @@ class BulletVideoLogger:
                 self.view_matrix, self.projection_matrix)
             images.append(img)
             action, _ = self.scripted_policy.get_action()
-            obs, rew, done, info = self.env.step(action)
+            obs, rew, terminated, truncated, info = self.env.step(action)
 
         if self.save_all:
             self.save_function(images, path_idx)

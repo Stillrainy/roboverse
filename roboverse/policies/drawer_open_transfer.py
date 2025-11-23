@@ -2,6 +2,16 @@ import numpy as np
 import roboverse.bullet as bullet
 
 
+def env_attr(env, name):
+    getter = getattr(env, 'get_wrapper_attr', None)
+    if callable(getter):
+        try:
+            return getter(name)
+        except Exception:
+            pass
+    return getattr(env, name)
+
+
 class DrawerOpenTransfer:
 
     def __init__(self, env, close_drawer=False, suboptimal=False):
@@ -16,19 +26,19 @@ class DrawerOpenTransfer:
 
     def reset(self):
         self.drawer_never_opened = True
-        offset_coeff = (-1) ** (self.env.left_opening - 1 + self.close_drawer)
+        offset_coeff = (-1) ** (env_attr(self.env, 'left_opening') - 1 + self.close_drawer)
         self.handle_offset = np.array([offset_coeff * 0.01, 0.0, -0.01])
 
     def get_action(self):
         ee_pos, _ = bullet.get_link_state(
-            self.env.robot_id, self.env.end_effector_index)
-        handle_pos = self.env.get_drawer_handle_pos() + self.handle_offset
+            env_attr(self.env, 'robot_id'), env_attr(self.env, 'end_effector_index'))
+        handle_pos = env_attr(self.env, 'get_drawer_handle_pos')() + self.handle_offset
         gripper_handle_dist = np.linalg.norm(handle_pos - ee_pos)
         gripper_handle_xy_dist = np.linalg.norm(handle_pos[:2] - ee_pos[:2])
         done = False
         neutral_action = [0.0]
         if (gripper_handle_xy_dist > self.gripper_xy_dist_thresh
-                and not self.env.is_drawer_open()):
+                and not env_attr(self.env, 'is_drawer_open')()):
             # print('xy - approaching handle')
             action_xyz = (handle_pos - ee_pos) * 7.0
             action_xyz = list(action_xyz[:2]) + [0.]  # don't droop down.
@@ -36,13 +46,13 @@ class DrawerOpenTransfer:
             action_gripper = [0.0]
 
         elif (gripper_handle_dist > self.gripper_dist_thresh
-                and not self.env.is_drawer_open()):
+                and not env_attr(self.env, 'is_drawer_open')()):
             # moving down toward handle
             action_xyz = (handle_pos - ee_pos) * 7.0
             action_angles = [0., 0., 0.]
             action_gripper = [0.0]
-        elif not self.env.is_drawer_open():
-            x_command = (-1) ** (self.env.left_opening - 1 + self.close_drawer)
+        elif not env_attr(self.env, 'is_drawer_open')():
+            x_command = (-1) ** (env_attr(self.env, 'left_opening') - 1 + self.close_drawer)
             if self.suboptimal:
                 # randomly decide whether to open or close the drawer
                 if np.random.uniform() > 0.5:
