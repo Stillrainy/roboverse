@@ -11,6 +11,9 @@ from .drawer_close_open_transfer import (
     DrawerCloseOpenTransfer,
     DrawerCloseOpenTransferSuboptimal
 )
+from .drawer_pick_place import (
+    DrawerPickPlace
+)
 
 policies = dict(
     grasp=Grasp,
@@ -23,6 +26,7 @@ policies = dict(
     drawer_open_transfer=DrawerOpenTransfer,
     place=Place,
     drawer_close_open_transfer=DrawerCloseOpenTransfer,
+    drawer_pick_place=DrawerPickPlace,
 )
 
 suboptimal_polices = dict(

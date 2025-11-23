@@ -6,7 +6,7 @@ from .pick_place import PickPlace
 from roboverse.envs.widow250_custom import Widow250DrawerRandomizedPickPlaceEnv as Env
 
 
-class DrawerPickPlacePolicy:
+class DrawerPickPlace:
     """Composite policy that first opens the drawer, then picks and places
     an object into the drawer using the existing scripted policies.
 
@@ -100,7 +100,7 @@ class DrawerPickPlacePolicy:
         raise RuntimeError(f"Unknown stage '{self.stage}' in DrawerPickPlacePolicy.")
 
 
-class DrawerPickPlaceSuboptimal(DrawerPickPlacePolicy):
+class DrawerPickPlaceSuboptimal(DrawerPickPlace):
     def __init__(self, env, **pick_kwargs):
         super(DrawerPickPlaceSuboptimal, self).__init__(env, **pick_kwargs)
         # Replace subpolicies with suboptimal variants when available

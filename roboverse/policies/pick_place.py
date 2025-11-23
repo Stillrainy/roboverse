@@ -7,7 +7,7 @@ from .drawer_open_transfer import DrawerOpenTransfer
 
 class PickPlace:
 
-    def __init__(self, env, pick_height_thresh=-0.31, xyz_action_scale=7.0,
+    def __init__(self, env, pick_height_thresh=-0.25, xyz_action_scale=7.0,
                  pick_point_noise=0.00, drop_point_noise=0.00):
         self.env = env
         self.pick_height_thresh_noisy = (

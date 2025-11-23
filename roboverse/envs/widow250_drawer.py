@@ -182,9 +182,9 @@ class Widow250DrawerRandomizedEnv(Widow250DrawerEnv):
 
     def get_obj_pos_high_low(self):
         obj_pos_high = tuple(
-            np.array(self.drawer_pos) + np.array([0.05, 0.06, 0.1]))
+            np.array(self.drawer_pos) + np.array([0.05, 0.06, 0.05]))
         obj_pos_low = tuple(
-            np.array(self.drawer_pos) + np.array([-0.05, -0.06, 0.1]))
+            np.array(self.drawer_pos) + np.array([-0.05, -0.06, 0.05]))
         return obj_pos_high, obj_pos_low
 
     def set_drawer_pos_and_quat(self):
