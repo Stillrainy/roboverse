@@ -282,14 +282,14 @@ class Widow250Env(gym.Env, Serializable):
         object_position, object_orientation = bullet.get_object_position(
             self.objects[self.target_object])
         if self.observation_mode == 'pixels':
-            image_observation = self.render_obs()
-            image_observation = np.float32(image_observation.flatten()) / 255.0
+            img, depth, _ = self.render_obs()
             observation = {
                 'object_position': object_position,
                 'object_orientation': object_orientation,
                 'state': np.concatenate(
                     (ee_pos, ee_quat, gripper_state, gripper_binary_state)),
-                'image': image_observation
+                'image': img,
+                'depth': depth,
             }
         else:
             raise NotImplementedError
@@ -326,7 +326,7 @@ class Widow250Env(gym.Env, Serializable):
             self._view_matrix_obs, self._projection_matrix_obs, shadow=0)
         if self.transpose_image:
             img = np.transpose(img, (2, 0, 1))
-        return img
+        return img, depth, segmentation
 
     def _set_action_space(self):
         self.action_dim = ACTION_DIM
@@ -336,14 +336,25 @@ class Widow250Env(gym.Env, Serializable):
 
     def _set_observation_space(self):
         if self.observation_mode == 'pixels':
-            self.image_length = np.prod(self.observation_img_dim) * 3
-            img_space = gym.spaces.Box(0, 1, (self.image_length,),
-                                       dtype=np.float32)
+            image_size = (*self.observation_img_dim, 3) if not self.transpose_image \
+                else (3, *self.observation_img_dim)
+            img_space = gym.spaces.Box(
+                0, 255,
+                image_size,
+                dtype=np.uint8)
+            depth_space = gym.spaces.Box(
+                0, 1,
+                (*self.observation_img_dim,),
+                dtype=np.float32)
             robot_state_dim = 10  # XYZ + QUAT + GRIPPER_STATE
             obs_bound = 100
             obs_high = np.ones(robot_state_dim) * obs_bound
             state_space = gym.spaces.Box(-obs_high, obs_high)
-            spaces = {'image': img_space, 'state': state_space}
+            spaces = {
+                'image': img_space,
+                'depth': depth_space,
+                'state': state_space
+            }
             self.observation_space = gym.spaces.Dict(spaces)
         else:
             raise NotImplementedError

@@ -1,5 +1,5 @@
 # Custom
-
+.vscode/
 .idea/
 data/
 scripts/scratch.py

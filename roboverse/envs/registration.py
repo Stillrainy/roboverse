@@ -16,8 +16,6 @@ ENVIRONMENT_SPECS = (
                    'load_tray': False,
                    'observation_img_dim': (256, 256),
                    'num_sim_steps': 15,
-                #    'grasp_success_height_threshold': 0,
-                #    'grasp_success_object_gripper_threshold': 
                    }
     },
     {

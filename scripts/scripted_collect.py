@@ -15,12 +15,11 @@ NFS_PATH = '/nfs/kun1/users/avi/imitation_datasets/'
 
 
 def add_transition(traj, observation, action, reward, info, agent_info, done,
-                   next_observation, img_h, img_w):
-    observation["image"] = np.reshape(np.uint8(observation["image"] * 255.),
-                                      (img_h, img_w, 3))
+                   next_observation):
+    # Convert images to uint8 for storage savings
+    # observation["image"] = np.uint8(observation["image"] * 255.)
+    # next_observation["image"] = np.uint8(next_observation["image"] * 255.)
     traj["observations"].append(observation)
-    next_observation["image"] = np.reshape(
-        np.uint8(next_observation["image"] * 255.), (img_h, img_w, 3))
     traj["next_observations"].append(next_observation)
     traj["actions"].append(action)
     traj["rewards"].append(reward)
@@ -35,7 +34,6 @@ def collect_one_traj(env, policy, num_timesteps, noise,
     num_steps = -1
     rewards = []
     success = False
-    img_dim = env.observation_img_dim
     env.reset()
     policy.reset()
     time.sleep(1)
@@ -61,7 +59,7 @@ def collect_one_traj(env, policy, num_timesteps, noise,
         observation = env.get_observation()
         next_observation, reward, done, info = env.step(action)
         add_transition(traj, observation,  action, reward, info, agent_info,
-                       done, next_observation, *img_dim)
+                       done, next_observation)
 
         if info[accept_trajectory_key] and num_steps < 0:
             num_steps = j
