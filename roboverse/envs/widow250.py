@@ -32,7 +32,7 @@ class Widow250Env(gym.Env, Serializable):
     def __init__(self,
                  control_mode='continuous',
                  observation_mode='pixels',
-                 observation_img_dim=48,
+                 observation_img_dim=(48, 48),
                  transpose_image=True,
 
                  object_names=('beer_bottle', 'gatorade'),
@@ -143,7 +143,7 @@ class Widow250Env(gym.Env, Serializable):
         self._view_matrix_obs = bullet.get_view_matrix(
             **view_matrix_args)
         self._projection_matrix_obs = bullet.get_projection_matrix(
-            self.observation_img_dim, self.observation_img_dim)
+            *self.observation_img_dim)
 
         self._set_action_space()
         self._set_observation_space()
@@ -322,7 +322,7 @@ class Widow250Env(gym.Env, Serializable):
 
     def render_obs(self):
         img, depth, segmentation = bullet.render(
-            self.observation_img_dim, self.observation_img_dim,
+            *self.observation_img_dim,
             self._view_matrix_obs, self._projection_matrix_obs, shadow=0)
         if self.transpose_image:
             img = np.transpose(img, (2, 0, 1))
@@ -336,7 +336,7 @@ class Widow250Env(gym.Env, Serializable):
 
     def _set_observation_space(self):
         if self.observation_mode == 'pixels':
-            self.image_length = (self.observation_img_dim ** 2) * 3
+            self.image_length = np.prod(self.observation_img_dim) * 3
             img_space = gym.spaces.Box(0, 1, (self.image_length,),
                                        dtype=np.float32)
             robot_state_dim = 10  # XYZ + QUAT + GRIPPER_STATE

@@ -17,6 +17,11 @@ TEST_CONTAINERS = [
 ]
 
 CONTAINER_CONFIGS = {
+    'drawer': {
+        'place_success_height_threshold': -0.34,
+        'place_success_radius_threshold': 0.06,
+        'min_distance_from_object': 0.11,
+    },
     'plate': {
         'container_position_low': (.50, 0.22, -.30),
         'container_position_high': (.70, 0.26, -.30),
@@ -442,5 +447,6 @@ GRASP_OFFSETS = {
     'pear_ringed_vase': (0.0, 0.01, 0.0),
     'teepee': (0.0, 0.04, 0.0),
     'long_vase': (0.0, 0.03, 0.0),
-    'ball': (0, 0, 0.0)
+    'ball': (0, 0, 0.05),
+    'shed': (0.0, 0.0, 0.05),
 }

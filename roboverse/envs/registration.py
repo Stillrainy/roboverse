@@ -4,6 +4,36 @@ from roboverse.assets.shapenet_object_lists \
     PICK_PLACE_TEST_OBJECTS, TRAIN_CONTAINERS, TEST_CONTAINERS
 
 ENVIRONMENT_SPECS = (
+    # Custom enviroments
+    {
+        'id': 'Widow250DrawerRandomizedPickPlace-v0',
+        'entry_point': 'roboverse.envs.widow250_custom:Widow250DrawerRandomizedPickPlaceEnv',
+        'kwargs': {'reward_type': 'opening',
+                   'control_mode': 'discrete_gripper',
+                   'object_names': ('ball',),
+                   'object_scales': (0.75,),
+                   'target_object': 'ball',
+                   'load_tray': False,
+                   'observation_img_dim': (256, 256),
+                   'num_sim_steps': 15,
+                #    'grasp_success_height_threshold': 0,
+                #    'grasp_success_object_gripper_threshold': 
+                   }
+    },
+    {
+        'id': 'Widow250DrawerRandomizedPickPlace-v1',
+        'entry_point': 'roboverse.envs.widow250_custom:Widow250DrawerRandomizedPickPlaceEnv',
+        'kwargs': {'reward_type': 'opening',
+                   'control_mode': 'discrete_gripper',
+                   'target_object': 'shed',
+                   'object_names': ('shed',),
+                   'object_scales': (0.7,),
+                   'load_tray': False,
+                   'observation_img_dim': (256, 256),
+                   'num_sim_steps': 15,
+                   }
+    },
+    # Grasping environments
     {
         'id': 'Widow250Grasp-v0',
         'entry_point': 'roboverse.envs.widow250:Widow250Env',
