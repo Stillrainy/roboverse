@@ -70,6 +70,7 @@ class Widow250Env(gym.Env, Serializable):
                  gui=False,
                  in_vr_replay=False,
                  ):
+        super(gym.Env).__init__()
 
         self.control_mode = control_mode
         self.observation_mode = observation_mode

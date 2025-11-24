@@ -89,11 +89,13 @@ class Widow250DrawerRandomizedPickPlaceEnv(Widow250DrawerRandomizedEnv):
             reward += 1.0
             self._place_achieved = True
 
-        done = False
         # if self._opened_achieved and self._grasp_achieved and self._place_achieved:
         # TODO: fix the issue grasp_achieved
         if self._opened_achieved and self._place_achieved:
-            done = True
-        terminated = bool(done)
+            terminated = True
+        else:
+            terminated = False
+        
         truncated = False
+
         return obs, reward, terminated, truncated, info

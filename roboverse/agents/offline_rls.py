@@ -44,9 +44,8 @@ class OfflineAgentTrainer:
             data_dir, obs_keys)
 
         # Build spaces
-        ref_env = gym.make(data_dir.split('_')[1])
-        obs_space, action_space = build_space(ref_env, obs_keys)
-        ref_env.close()
+        eval_env = gym.make(data_dir.split('_')[1])
+        obs_space, action_space = build_space(eval_env, obs_keys)
 
         # Auto-select policy
         if any(k in ["image", "depth"] for k in obs_keys):
@@ -104,8 +103,9 @@ class OfflineAgentTrainer:
             verbose=1
         )
 
-        # Optional: EvalCallback (evals on 1 env)
-        self.eval_env = DummyVecEnv([make_env(12345)])
+        # Wrap the evaluation env in a callable for DummyVecEnv
+        eval_wrapped = ImageDepthEnvWrapper(eval_env)
+        self.eval_env = DummyVecEnv([lambda: eval_wrapped])
         self.eval_callback = EvalCallback(
             self.eval_env,
             best_model_save_path=os.path.join(log_dir, "best_model"),

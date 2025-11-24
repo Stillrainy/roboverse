@@ -8,6 +8,7 @@ ENVIRONMENT_SPECS = (
     {
         'id': 'Widow250DrawerRandomizedPickPlace-v0',
         'entry_point': 'roboverse.envs.widow250_custom:Widow250DrawerRandomizedPickPlaceEnv',
+        'max_episode_steps': 200,
         'kwargs': {'reward_type': 'opening',
                    'control_mode': 'discrete_gripper',
                    'object_names': ('ball',),
