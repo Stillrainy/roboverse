@@ -9,7 +9,6 @@ from stable_baselines3 import (
     SAC
 )
 from stable_baselines3.common.off_policy_algorithm import OffPolicyAlgorithm
-from stable_baselines3.common.vec_env import DummyVecEnv
 from stable_baselines3.common.callbacks import (
     CheckpointCallback,
     EvalCallback,
@@ -33,7 +32,6 @@ class OfflineAgentTrainer:
         device: str = "cuda",
         log_dir: str = "./logs",
         save_freq: int = 10_000,
-        n_envs: int = 4,
     ):
         self.obs_keys = obs_keys
         self.log_dir = log_dir
@@ -44,51 +42,44 @@ class OfflineAgentTrainer:
             data_dir, obs_keys)
 
         # Build spaces
-        eval_env = gym.make(data_dir.split('_')[1])
-        obs_space, action_space = build_space(eval_env, obs_keys)
+        self.eval_env = gym.make(data_dir.split('_')[1])
+        obs_space, action_space = build_space(self.eval_env, obs_keys)
 
-        # Auto-select policy
-        if any(k in ["image", "depth"] for k in obs_keys):
+        # Create offline replay env
+        self.env = OfflineReplayEnv(
+            obs, act, rew, next_obs, dones,
+            obs_space, action_space
+        )
+
+        # Convert to Box observation if using image/depth only
+        if obs_keys and any(k in ["image", "depth"] for k in obs_keys):
+            self.env = ImageDepthEnvWrapper(self.env)
+            self.eval_env = ImageDepthEnvWrapper(self.eval_env)
+
+        # Auto-select policy type
+        obs_space = self.env.observation_space
+        if isinstance(obs_space, gym.spaces.Box) and len(obs_space.shape) == 3:
+            # (C,H,W) tensor → image
             self.policy_type = "CnnPolicy"
-            normlize = False
+            normalize_images = False
         else:
-            self.policy_type = "MlpPolicy"
-            normlize = True
+            self.policy_type = "MultiInputPolicy"
+            normalize_images = True
 
-        # Create vectorized offline replay envs
-        def make_env(seed_offset):
-            def _thunk():
-                env = OfflineReplayEnv(
-                    obs, act, rew, next_obs, dones,
-                    obs_space, action_space
-                )
-                if any(k in ["image", "depth"] for k in self.obs_keys):
-                    env = ImageDepthEnvWrapper(env)
-                try:
-                    env.reset(seed=seed_offset)
-                except TypeError:
-                    env.reset()
-                return env
-            return _thunk
-
-        self.vec_env = DummyVecEnv([make_env(i) for i in range(n_envs)])
-
-        # tensorboard_log
-        tb_log_path = os.path.join(log_dir, "tb")
-
+        # SB3 Policy kwargs
         policy_kwargs = dict(
-            normalize_images=normlize,
+            normalize_images=normalize_images,
             # features_extractor_class=CustomCNN,
             # features_extractor_kwargs=dict(features_dim=256),
         )
 
         args = dict(
             policy=self.policy_type,
-            env=self.vec_env,
+            env=self.env,
             device=device,
             verbose=1,
-            buffer_size=len(obs),
-            tensorboard_log=tb_log_path,
+            buffer_size=min(len(obs), 20000),
+            tensorboard_log=log_dir,
             policy_kwargs=policy_kwargs,
         )
 
@@ -103,9 +94,6 @@ class OfflineAgentTrainer:
             verbose=1
         )
 
-        # Wrap the evaluation env in a callable for DummyVecEnv
-        eval_wrapped = ImageDepthEnvWrapper(eval_env)
-        self.eval_env = DummyVecEnv([lambda: eval_wrapped])
         self.eval_callback = EvalCallback(
             self.eval_env,
             best_model_save_path=os.path.join(log_dir, "best_model"),

@@ -17,8 +17,6 @@ def parse_args():
                         help='Directory to write logs. If omitted, a timestamped folder under `logs/` in CWD will be used')
     parser.add_argument('--obs-keys', nargs='+', default=['image', 'depth'],
                         help='Observation keys to use (space-separated). Default: %(default)s')
-    parser.add_argument('--n-envs', type=int, default=10,
-                        help='Number of parallel environments')
     parser.add_argument('-s', '--save-freq', type=int, default=1000,
                         help='Model save frequency (in steps)')
     parser.add_argument('-t', '--total-timesteps', type=int, default=100000,
@@ -47,7 +45,6 @@ if __name__ == "__main__":
         data_dir=args.data_dir,
         obs_keys=args.obs_keys,
         log_dir=save_dir,
-        n_envs=args.n_envs,
         save_freq=args.save_freq,
     )
 
