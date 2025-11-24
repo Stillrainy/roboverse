@@ -100,7 +100,8 @@ class OfflineAgentTrainer:
         self.checkpoint_callback = CheckpointCallback(
             save_freq=self.save_freq,
             save_path=os.path.join(log_dir, "checkpoints"),
-            name_prefix=f"{algo}_offline_model"
+            name_prefix=f"{algo}_offline_model",
+            verbose=1
         )
 
         # Optional: EvalCallback (evals on 1 env)
