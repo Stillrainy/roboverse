@@ -3,6 +3,8 @@
 .idea/
 data/
 scripts/scratch.py
+logs/
+notebook/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

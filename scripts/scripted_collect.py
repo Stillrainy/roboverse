@@ -88,8 +88,7 @@ def main(args):
         os.makedirs(data_save_path)
 
     env = roboverse.make(args.env_name,
-                         gui=args.gui,
-                         transpose_image=False)
+                         gui=args.gui)
 
     data = []
     assert args.policy_name in policies.keys(), f"The policy name must be one of: {policies.keys()}"
