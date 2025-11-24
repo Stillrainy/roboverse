@@ -18,7 +18,8 @@ from stable_baselines3.common.callbacks import (
 from .utils import (
     load_dataset_from_dir,
     build_space,
-    ImageDepthEnvWrapper
+    ImageDepthEnvWrapper,
+    SubspaceEnvWrapper
 )
 from .custom_cnn import CustomCNN
 
@@ -27,7 +28,7 @@ class OfflineAgentTrainer:
     def __init__(
         self,
         data_dir: str,
-        obs_keys: List[str],
+        obs_keys: List[str] = None,
         algo: str = "SAC",
         device: str = "cuda",
         log_dir: str = "./logs",
@@ -51,10 +52,13 @@ class OfflineAgentTrainer:
             obs_space, action_space
         )
 
-        # Convert to Box observation if using image/depth only
-        if obs_keys and any(k in ["image", "depth"] for k in obs_keys):
+        # Wrap env if needed
+        if obs_keys is not None and any(k in ["image", "depth"] for k in obs_keys):
             self.env = ImageDepthEnvWrapper(self.env)
             self.eval_env = ImageDepthEnvWrapper(self.eval_env)
+        elif obs_keys is not None:
+            self.env = SubspaceEnvWrapper(self.env, obs_keys)
+            self.eval_env = SubspaceEnvWrapper(self.eval_env, obs_keys)
 
         # Auto-select policy type
         obs_space = self.env.observation_space

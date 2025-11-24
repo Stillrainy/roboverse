@@ -175,3 +175,30 @@ class ImageDepthEnvWrapper(gym.ObservationWrapper):
         stacked = np.concatenate([img, depth_norm], axis=0)  # float32
 
         return stacked
+
+
+class SubspaceEnvWrapper(gym.ObservationWrapper):
+    """
+    Extract a sub-dictionary from the observation dict.
+    """
+
+    def __init__(self, env, keys: List[str]):
+        super().__init__(env)
+        self.keys = keys
+
+        # Build the new observation space
+        obs_space = {}
+        for k in keys:
+            if k not in env.observation_space.spaces:
+                raise ValueError(f"Key {k} not in environment observation space.")
+            else:
+                obs_space[k] = env.observation_space.spaces[k]
+
+        self.observation_space = spaces.Dict(obs_space)
+
+    def observation(self, obs):
+        """
+        obs is dict
+        """
+        sub_obs = {k: obs[k] for k in self.keys}
+        return sub_obs

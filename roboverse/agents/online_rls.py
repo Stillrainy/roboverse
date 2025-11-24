@@ -14,7 +14,10 @@ from stable_baselines3.common.callbacks import (
     CallbackList,
 )
 
-from .utils import ImageDepthEnvWrapper
+from .utils import (
+    ImageDepthEnvWrapper,
+    SubspaceEnvWrapper
+)
 from .custom_cnn import CustomCNN
 
 
@@ -38,10 +41,13 @@ class OnlineAgentTrainer:
         self.env = gym.make(env_id)
         self.eval_env = gym.make(env_id)
 
-        # Convert to Box observation if using image/depth only
-        if obs_keys and any(k in ["image", "depth"] for k in obs_keys):
+        # Wrap env if needed
+        if obs_keys is not None and any(k in ["image", "depth"] for k in obs_keys):
             self.env = ImageDepthEnvWrapper(self.env)
             self.eval_env = ImageDepthEnvWrapper(self.eval_env)
+        elif obs_keys is not None:
+            self.env = SubspaceEnvWrapper(self.env, obs_keys)
+            self.eval_env = SubspaceEnvWrapper(self.eval_env, obs_keys)
 
         # Auto-select policy type
         obs_space = self.env.observation_space
