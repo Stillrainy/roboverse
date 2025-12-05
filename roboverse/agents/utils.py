@@ -2,6 +2,7 @@ import numpy as np
 from typing import List, Dict, Any, Tuple
 import gymnasium as gym
 from gymnasium import spaces
+import torch
 
 
 def load_dataset_file(path: str, obs_keys: List[str] = None):
@@ -202,3 +203,27 @@ class SubspaceEnvWrapper(gym.ObservationWrapper):
         """
         sub_obs = {k: obs[k] for k in self.keys}
         return sub_obs
+
+
+def obs_dict_to_tensors(obs_dict, device=torch.device('cpu')):
+    """
+    Convert env obs dict to proper tensors, matching prior training.
+
+    obs_dict: {'state': np.ndarray(S,),
+               'image': np.ndarray(C,H,W) uint8,
+               'depth': np.ndarray(H,W)}
+
+    Returns state, image, depth as torch tensors (batch-less).
+    """
+    state = torch.from_numpy(obs_dict['state']).float().to(device)
+    image = torch.from_numpy(obs_dict['image']).float().to(device) / 255.0
+    depth = torch.from_numpy(obs_dict['depth']).float().unsqueeze(0).to(device)
+    return state.unsqueeze(0), image.unsqueeze(0), depth.unsqueeze(0)  # add batch dim
+
+
+@torch.no_grad()
+def encode_obs_feat(prior_model, obs_dict, device=torch.device('cpu')):
+    prior_model.eval()
+    state, image, depth = obs_dict_to_tensors(obs_dict, device)
+    obs_feat = prior_model.encode_obs(state, image, depth)  # (1, obs_feat_dim)
+    return obs_feat.squeeze(0)  # (obs_feat_dim,)

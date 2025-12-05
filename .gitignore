@@ -5,6 +5,7 @@ data/
 scripts/scratch.py
 logs/
 notebook/
+checkpoints/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
