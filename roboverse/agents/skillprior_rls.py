@@ -3,13 +3,10 @@ import torch
 import torch.nn as nn
 
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-
 # ---------- Replay Buffer over skills ----------
 
 class ReplayBuffer:
-    def __init__(self, capacity, obs_dim, z_dim):
+    def __init__(self, capacity, obs_dim, z_dim, device):
         self.capacity = capacity
         self.obs = np.zeros((capacity, obs_dim), dtype=np.float32)
         self.z = np.zeros((capacity, z_dim), dtype=np.float32)
@@ -18,6 +15,7 @@ class ReplayBuffer:
         self.done = np.zeros((capacity,), dtype=np.float32)
         self.ptr = 0
         self.size = 0
+        self.device = device
 
     def add(self, obs, z, rew, next_obs, done):
         self.obs[self.ptr] = obs
@@ -31,11 +29,11 @@ class ReplayBuffer:
     def sample(self, batch_size):
         idxs = np.random.randint(0, self.size, size=batch_size)
         return (
-            torch.from_numpy(self.obs[idxs]).to(device),
-            torch.from_numpy(self.z[idxs]).to(device),
-            torch.from_numpy(self.rew[idxs]).to(device),
-            torch.from_numpy(self.next_obs[idxs]).to(device),
-            torch.from_numpy(self.done[idxs]).to(device),
+            torch.from_numpy(self.obs[idxs]).to(self.device),
+            torch.from_numpy(self.z[idxs]).to(self.device),
+            torch.from_numpy(self.rew[idxs]).to(self.device),
+            torch.from_numpy(self.next_obs[idxs]).to(self.device),
+            torch.from_numpy(self.done[idxs]).to(self.device),
         )
 
 
